@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/TravelMate_project.iml" filepath="$PROJECT_DIR$/TravelMate_project.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/TavelMate-Backend.iml" filepath="$PROJECT_DIR$/.idea/TavelMate-Backend.iml" />
     </modules>
   </component>
 </project>

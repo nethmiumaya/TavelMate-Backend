@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth-routes";
 import destinationRoutes from "./routes/destination-routes";
 import activityRoutes from "./routes/activity-routes";
+import itineraryRoutes from "./routes/itinerary-routes";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/destinations", destinationRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/api/itineraries", itineraryRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

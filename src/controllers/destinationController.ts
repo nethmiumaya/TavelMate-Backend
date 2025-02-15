@@ -1,51 +1,37 @@
-import { Request, Response } from "express";
-import { AuthRequest } from "../middleware/authMiddleware";
+import { Response } from "express";
 import prisma from "../config/prisma";
+import { AuthRequest } from "../middleware/authMiddleware";
 
 export const createDestination = async (req: AuthRequest, res: Response): Promise<void> => {
-    const { name, location } = req.body;
-    const userId = req.user?.id;
-
-    if (typeof userId !== 'number') {
-        res.status(400).json({ message: "User ID must be a number" });
-        return;
-    }
-
     try {
-        const newDestination = await prisma.destination.create({
-            data: {
-                name,
-                location,
-                userId,
-            },
+        const { itineraryId, name, location, latitude, longitude } = req.body;
+        const userId = req.user?.id;
+
+        console.log("Creating destination for itinerary ID:", itineraryId);
+
+        const itinerary = await prisma.itinerary.findUnique({ where: { id: itineraryId } });
+        if (!itinerary || itinerary.userId !== userId) {
+            res.status(403).json({ message: "You do not own this itinerary" });
+            return;
+        }
+
+        const destination = await prisma.destination.create({
+            data: { itineraryId, name, location, latitude, longitude },
         });
-        res.status(201).json(newDestination);
+
+        res.status(201).json(destination);
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        console.error("Error creating destination:", error);
+        res.status(500).json({ message: "Error creating destination", error });
     }
 };
 
-export const getDestinations = async (req: AuthRequest, res: Response): Promise<void> => {
-    const userId = req.user?.id;
-
+export const getDestination = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const destinations = await prisma.destination.findMany({
-            where: { userId },
-            include: { activities: true },
-        });
-        res.status(200).json(destinations);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
-};
+        const destinationId = Number(req.params.destinationId);
 
-export const getDestinationById = async (req: AuthRequest, res: Response): Promise<void> => {
-    const { id } = req.params;
-    const userId = req.user?.id;
-
-    try {
-        const destination = await prisma.destination.findFirst({
-            where: { id: Number(id), userId },
+        const destination = await prisma.destination.findUnique({
+            where: { id: destinationId },
             include: { activities: true },
         });
 
@@ -54,38 +40,36 @@ export const getDestinationById = async (req: AuthRequest, res: Response): Promi
             return;
         }
 
-        res.status(200).json(destination);
+        res.json(destination);
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Error fetching destination", error });
     }
 };
 
 export const updateDestination = async (req: AuthRequest, res: Response): Promise<void> => {
-    const { id } = req.params;
-    const { name, location } = req.body;
-
     try {
+        const destinationId = Number(req.params.destinationId);
+        const { name, location, latitude, longitude } = req.body;
+
         const updatedDestination = await prisma.destination.update({
-            where: { id: Number(id) },
-            data: { name, location },
+            where: { id: destinationId },
+            data: { name, location, latitude, longitude },
         });
 
-        res.status(200).json(updatedDestination);
+        res.json(updatedDestination);
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Error updating destination", error });
     }
 };
 
 export const deleteDestination = async (req: AuthRequest, res: Response): Promise<void> => {
-    const { id } = req.params;
-
     try {
-        await prisma.destination.delete({
-            where: { id: Number(id) },
-        });
+        const destinationId = Number(req.params.destinationId);
 
-        res.status(200).json({ message: "Destination deleted successfully" });
+        await prisma.destination.delete({ where: { id: destinationId } });
+
+        res.json({ message: "Destination deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Error deleting destination", error });
     }
 };

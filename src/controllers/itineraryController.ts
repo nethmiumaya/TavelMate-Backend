@@ -1,14 +1,15 @@
-import { Response } from "express";
+import { Response, Request } from "express";
 import prisma from "../config/prisma";
 import { AuthRequest } from "../middleware/authMiddleware";
+import { generateSharedLink } from '../utils/generateSharedLink';
+import { sendSharedLinkEmail } from '../utils/sendEmail';
 
 export const createItinerary = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { title, startDate, endDate,userId } = req.body;
+        const { title, startDate, endDate } = req.body;
+        const userId = req.user?.id;
 
-        console.log(req.body);
         if (!userId) {
-            console.log(userId);
             res.status(400).json({ message: "User ID is required" });
             return;
         }
@@ -37,8 +38,6 @@ export const updateItinerary = async (req: AuthRequest, res: Response): Promise<
         const { itineraryId } = req.params;
         const { title, startDate, endDate } = req.body;
 
-        console.log("Updating itinerary with ID:", itineraryId);
-
         const updatedItinerary = await prisma.itinerary.update({
             where: { id: Number(itineraryId) },
             data: { title, startDate, endDate },
@@ -46,7 +45,6 @@ export const updateItinerary = async (req: AuthRequest, res: Response): Promise<
 
         res.json(updatedItinerary);
     } catch (error) {
-        console.error("Error updating itinerary:", error);
         res.status(500).json({ message: "Error updating itinerary", error });
     }
 };
@@ -54,7 +52,6 @@ export const updateItinerary = async (req: AuthRequest, res: Response): Promise<
 export const getItinerary = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { itineraryId } = req.params;
-        console.log("Fetching itinerary with ID:", itineraryId);
 
         const itinerary = await prisma.itinerary.findUnique({
             where: { id: Number(itineraryId) },
@@ -74,7 +71,6 @@ export const getItinerary = async (req: AuthRequest, res: Response): Promise<voi
 export const deleteItinerary = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { itineraryId } = req.params;
-        console.log("Deleting itinerary with ID:", itineraryId);
 
         await prisma.itinerary.delete({
             where: { id: Number(itineraryId) },
@@ -82,7 +78,76 @@ export const deleteItinerary = async (req: AuthRequest, res: Response): Promise<
 
         res.json({ message: "Itinerary deleted successfully" });
     } catch (error) {
-        console.error("Error deleting itinerary:", error);
         res.status(500).json({ message: "Error deleting itinerary", error });
+    }
+};
+
+export const shareItinerary = async (req: AuthRequest, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { sharedWithEmail } = req.body;
+    const userId = req.user?.id;
+
+    try {
+        const itinerary = await prisma.itinerary.findFirst({
+            where: { id: parseInt(id), userId },
+        });
+
+        if (!itinerary) {
+            res.status(403).json({ error: 'Not authorized' });
+            return;
+        }
+
+        const sharedLink = generateSharedLink();
+
+        await prisma.sharedItinerary.create({
+            data: {
+                itineraryId: parseInt(id),
+                sharedWithEmail,
+                sharedLink,
+            },
+        });
+
+        if (sharedWithEmail) {
+            await sendSharedLinkEmail(sharedWithEmail, sharedLink);
+        }
+
+        res.json({
+            sharedLink: `${process.env.CLIENT_URL}/shared/${sharedLink}`
+        });
+    } catch (error) {
+        console.error("Error sharing itinerary:", error); // Add this line for detailed logging
+        res.status(500).json({ error: 'Sharing failed' });
+    }
+};
+
+
+export const viewSharedItinerary = async (req: Request, res: Response): Promise<void> => {
+    const { sharedLink } = req.params;
+
+    try {
+        const sharedRecord = await prisma.sharedItinerary.findUnique({
+            where: { sharedLink },
+            include: {
+                itinerary: {
+                    include: {
+                        destinations: {
+                            include: { activities: true },
+                        },
+                        user: { select: { name: true } },
+                    },
+                },
+            },
+        });
+
+        if (!sharedRecord) {
+            console.error("Invalid link:", sharedLink); // Add logging for invalid link
+            res.status(404).json({ error: 'Invalid link' });
+            return;
+        }
+
+        res.json(sharedRecord.itinerary);
+    } catch (error) {
+        console.error("Error loading shared itinerary:", error); // Add logging for errors
+        res.status(500).json({ error: 'Failed to load itinerary' });
     }
 };

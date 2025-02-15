@@ -1,5 +1,5 @@
 import express from "express";
-import {authenticate} from "../middleware/authMiddleware";
+import { authenticateUser } from "../middleware/authMiddleware";
 import {checkActivityExists, checkDestinationExists, validateActivityData} from "../middleware/activityMiddleware";
 import {
     createActivity,
@@ -11,10 +11,9 @@ import {
 
 const router = express.Router();
 
-router.post("/", authenticate, validateActivityData, checkDestinationExists, createActivity);
-router.get("/", authenticate, getActivities);
-router.get("/:id", authenticate, checkActivityExists, getActivityById);
-router.put("/:id", authenticate, validateActivityData, checkActivityExists, updateActivity);
-router.delete("/:id", authenticate, checkActivityExists, deleteActivity);
-
+router.post("/", authenticateUser, validateActivityData, checkDestinationExists, createActivity);
+router.get("/", authenticateUser, getActivities);
+router.get("/:id", authenticateUser, checkActivityExists, getActivityById);
+router.put("/:id", authenticateUser, validateActivityData, checkActivityExists, updateActivity);
+router.delete("/:id", authenticateUser, checkActivityExists, deleteActivity);
 export default router;

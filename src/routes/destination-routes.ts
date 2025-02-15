@@ -1,21 +1,13 @@
 import express from "express";
-import { authenticate } from "../middleware/authMiddleware";
-import { validateDestinationOwnership } from "../middleware/destinationMiddleware";
-import {
-    createDestination,
-    getDestinations,
-    getDestinationById,
-    updateDestination,
-    deleteDestination,
-} from "../controllers/destinationController";
+import { createDestination, updateDestination, deleteDestination, getDestination } from "../controllers/destinationController";
+import {authenticateUser} from "../middleware/itineraryMiddleware";
+import {authorizeDestinationOwner} from "../middleware/destinationMiddleware";
 
 const router = express.Router();
 
-// Routes for destination CRUD operations
-router.post("/", authenticate, createDestination);
-router.get("/", authenticate, getDestinations);
-router.get("/:id", authenticate, getDestinationById);
-router.put("/:id", authenticate, validateDestinationOwnership, updateDestination);
-router.delete("/:id", authenticate, validateDestinationOwnership, deleteDestination);
+router.post("/", authenticateUser, createDestination);
+router.get("/:destinationId", authenticateUser, authorizeDestinationOwner, getDestination);
+router.put("/:destinationId", authenticateUser, authorizeDestinationOwner, updateDestination);
+router.delete("/:destinationId", authenticateUser, authorizeDestinationOwner, deleteDestination);
 
 export default router;

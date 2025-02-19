@@ -32,7 +32,7 @@ export const getDestination = async (req: AuthRequest, res: Response): Promise<v
 
         const destination = await prisma.destination.findUnique({
             where: { id: destinationId },
-            include: { activities: true },
+            include: { activity: true },
         });
 
         if (!destination) {

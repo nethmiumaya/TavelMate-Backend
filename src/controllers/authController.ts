@@ -32,7 +32,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, password } = req.body;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+            where: { email },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                password: true,
+                createdAt: true,
+                itinerary: true,
+            }
+        });
+
         if (!user) {
             res.status(400).json({ message: "Invalid credentials" });
             return;
@@ -46,8 +57,27 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "1h" });
 
-        res.status(200).json({ message: "Login successful", token });
+        // Return user data without password
+        const { password: _, ...userWithoutPassword } = user;
+
+        res.status(200).json({
+            console: console.log('Login successful'),
+            message: "Login successful",
+            token,
+            user: userWithoutPassword
+        });
+
     } catch (error) {
-        res.status(500).json({ message: "Internal Server Error", error });
+        console.error('Login error:', error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
+export async function getAllUsers() {
+    try {
+        const users = await prisma.user.findMany();
+        return users;
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        throw new Error("Error fetching users");
+    }
+}

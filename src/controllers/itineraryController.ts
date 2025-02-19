@@ -99,7 +99,7 @@ export const shareItinerary = async (req: AuthRequest, res: Response): Promise<v
 
         const sharedLink = generateSharedLink();
 
-        await prisma.sharedItinerary.create({
+        await prisma.shareditinerary.create({
             data: {
                 itineraryId: parseInt(id),
                 sharedWithEmail,
@@ -120,18 +120,17 @@ export const shareItinerary = async (req: AuthRequest, res: Response): Promise<v
     }
 };
 
-
 export const viewSharedItinerary = async (req: Request, res: Response): Promise<void> => {
     const { sharedLink } = req.params;
 
     try {
-        const sharedRecord = await prisma.sharedItinerary.findUnique({
+        const sharedRecord = await prisma.shareditinerary.findUnique({
             where: { sharedLink },
             include: {
                 itinerary: {
                     include: {
-                        destinations: {
-                            include: { activities: true },
+                        destination: {
+                            include: { activity: true },
                         },
                         user: { select: { name: true } },
                     },

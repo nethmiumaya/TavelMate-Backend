@@ -32,7 +32,7 @@ export const getDestination = async (req: AuthRequest, res: Response): Promise<v
 
         const destination = await prisma.destination.findUnique({
             where: { id: destinationId },
-            include: { activity: true },
+            include: { activities: true }, // Corrected property name
         });
 
         if (!destination) {
@@ -66,7 +66,15 @@ export const deleteDestination = async (req: AuthRequest, res: Response): Promis
     try {
         const destinationId = Number(req.params.destinationId);
 
-        await prisma.destination.delete({ where: { id: destinationId } });
+        // Delete related activities
+        await prisma.activity.deleteMany({
+            where: { destinationId },
+        });
+
+        // Delete the destination
+        await prisma.destination.delete({
+            where: { id: destinationId },
+        });
 
         res.json({ message: "Destination deleted successfully" });
     } catch (error) {

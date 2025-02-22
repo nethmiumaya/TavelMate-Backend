@@ -28,6 +28,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
+
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, password } = req.body;
@@ -40,7 +41,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                 email: true,
                 password: true,
                 createdAt: true,
-                itinerary: true,
+                itineraries: true, // Corrected property name
             }
         });
 
@@ -61,7 +62,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         const { password: _, ...userWithoutPassword } = user;
 
         res.status(200).json({
-            console: console.log('Login successful'),
             message: "Login successful",
             token,
             user: userWithoutPassword

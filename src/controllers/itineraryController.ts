@@ -49,22 +49,29 @@ export const updateItinerary = async (req: AuthRequest, res: Response): Promise<
     }
 };
 
-export const getItinerary = async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        const { itineraryId } = req.params;
+export const getItinerary = async (req: Request, res: Response): Promise<void> => {
+    const { itineraryId } = req.params;
 
+    try {
         const itinerary = await prisma.itinerary.findUnique({
             where: { id: Number(itineraryId) },
+            include: {
+                destinations: {
+                    include: { activities: true },
+                },
+                user: true,
+            },
         });
 
         if (!itinerary) {
-            res.status(404).json({ message: "Itinerary not found" });
+            res.status(404).json({ message: 'Itinerary not found' });
             return;
         }
 
         res.json(itinerary);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching itinerary", error });
+        console.error('Error fetching itinerary:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 };
 
@@ -72,6 +79,26 @@ export const deleteItinerary = async (req: AuthRequest, res: Response): Promise<
     try {
         const { itineraryId } = req.params;
 
+        // Delete related activities
+        await prisma.activity.deleteMany({
+            where: {
+                destination: {
+                    itineraryId: Number(itineraryId),
+                },
+            },
+        });
+
+        // Delete related destinations
+        await prisma.destination.deleteMany({
+            where: { itineraryId: Number(itineraryId) },
+        });
+
+        // Delete related shared itineraries
+        await prisma.sharedItinerary.deleteMany({
+            where: { itineraryId: Number(itineraryId) },
+        });
+
+        // Delete the itinerary
         await prisma.itinerary.delete({
             where: { id: Number(itineraryId) },
         });
@@ -99,7 +126,7 @@ export const shareItinerary = async (req: AuthRequest, res: Response): Promise<v
 
         const sharedLink = generateSharedLink();
 
-        await prisma.shareditinerary.create({
+        await prisma.sharedItinerary.create({
             data: {
                 itineraryId: parseInt(id),
                 sharedWithEmail,
@@ -115,7 +142,7 @@ export const shareItinerary = async (req: AuthRequest, res: Response): Promise<v
             sharedLink: `${process.env.CLIENT_URL}/shared/${sharedLink}`
         });
     } catch (error) {
-        console.error("Error sharing itinerary:", error); // Add this line for detailed logging
+        console.error("Error sharing itinerary:", error);
         res.status(500).json({ error: 'Sharing failed' });
     }
 };
@@ -124,13 +151,13 @@ export const viewSharedItinerary = async (req: Request, res: Response): Promise<
     const { sharedLink } = req.params;
 
     try {
-        const sharedRecord = await prisma.shareditinerary.findUnique({
+        const sharedRecord = await prisma.sharedItinerary.findUnique({
             where: { sharedLink },
             include: {
                 itinerary: {
                     include: {
-                        destination: {
-                            include: { activity: true },
+                        destinations: {
+                            include: { activities: true },
                         },
                         user: { select: { name: true } },
                     },
@@ -139,14 +166,14 @@ export const viewSharedItinerary = async (req: Request, res: Response): Promise<
         });
 
         if (!sharedRecord) {
-            console.error("Invalid link:", sharedLink); // Add logging for invalid link
+            console.error("Invalid link:", sharedLink);
             res.status(404).json({ error: 'Invalid link' });
             return;
         }
 
         res.json(sharedRecord.itinerary);
     } catch (error) {
-        console.error("Error loading shared itinerary:", error); // Add logging for errors
+        console.error("Error loading shared itinerary:", error);
         res.status(500).json({ error: 'Failed to load itinerary' });
     }
 };

@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique
+  password    String
+  createdAt   DateTime    @default(now())
+  itineraries Itinerary[] // A user can have multiple itineraries
+}
+
+model Itinerary {
+  id           Int               @id @default(autoincrement())
+  userId       Int
+  user         User              @relation(fields: [userId], references: [id])
+  title        String
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime          @default(now())
+  destinations Destination[] // An itinerary can have multiple destinations
+  sharedWith   SharedItinerary[] // Tracks who the itinerary is shared with
+}
+
+model Destination {
+  id          Int        @id @default(autoincrement())
+  itineraryId Int
+  itinerary   Itinerary  @relation(fields: [itineraryId], references: [id])
+  name        String
+  location    String
+  latitude    Float? // Optional: For map integration
+  longitude   Float? // Optional: For map integration
+  activities  Activity[] // A destination can have multiple activities
+}
+
+model Activity {
+  id            Int         @id @default(autoincrement())
+  destinationId Int
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  title         String
+  description   String
+  date          DateTime
+}
+
+model SharedItinerary {
+  id              Int       @id @default(autoincrement())
+  itineraryId     Int
+  itinerary       Itinerary @relation(fields: [itineraryId], references: [id])
+  sharedWithEmail String // Email of the person it's shared with (optional)
+  sharedLink      String    @unique // Unique link for sharing
+  createdAt       DateTime  @default(now())
+}

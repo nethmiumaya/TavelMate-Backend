@@ -20,7 +20,6 @@ export const authenticateUser = (req: AuthRequest, res: Response, next: NextFunc
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: number };
         req.user = { id: decoded.userId };
-        console.log(req.user);
         next();
     } catch (error) {
         res.status(401).json({ message: "Unauthorized: Invalid token" });
@@ -30,7 +29,7 @@ export const authenticateUser = (req: AuthRequest, res: Response, next: NextFunc
 export const authorizeItineraryOwner = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     const { itineraryId } = req.params;
     const userId = req.user?.id;
-console.log(userId+"userId")
+
     if (!userId) {
         res.status(401).json({ message: "Unauthorized: No user ID found" });
         return;

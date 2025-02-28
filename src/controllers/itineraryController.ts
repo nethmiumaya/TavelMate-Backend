@@ -25,13 +25,22 @@ export const createItinerary = async (req: AuthRequest, res: Response): Promise<
 };
 
 export const getAllItineraries = async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ message: "Unauthorized: user not authenticated" });
+        return;
+    }
+
     try {
-        const itineraries = await prisma.itinerary.findMany();
+        const itineraries = await prisma.itinerary.findMany({
+            where: { userId: req.user.id },
+        });
         res.json(itineraries);
     } catch (error) {
         res.status(500).json({ message: "Error fetching itineraries", error });
     }
 };
+
+
 
 export const updateItinerary = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -146,7 +155,6 @@ export const shareItinerary = async (req: AuthRequest, res: Response): Promise<v
         res.status(500).json({ error: 'Sharing failed' });
     }
 };
-
 export const viewSharedItinerary = async (req: Request, res: Response): Promise<void> => {
     const { sharedLink } = req.params;
 
